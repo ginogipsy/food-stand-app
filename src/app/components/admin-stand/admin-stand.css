@@ -1,0 +1,8 @@
+.admin-container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+.section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.piatto-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+.piatto-row input { flex: 1; padding: 8px; }
+.btn-add { background: #28a745; color: white; border: none; padding: 10px; cursor: pointer; margin-bottom: 20px; }
+.btn-remove { background: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+.btn-save { width: 100%; background: #007bff; color: white; padding: 15px; border: none; font-size: 1.1em; cursor: pointer; }
+.btn-save:disabled { background: #ccc; }

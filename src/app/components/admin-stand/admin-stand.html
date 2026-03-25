@@ -1,0 +1,32 @@
+<div class="admin-container">
+  <h2>Configurazione Nuovo Stand</h2>
+
+  <form [formGroup]="standForm" (ngSubmit)="onSubmit()">
+    <div class="section">
+      <label>Nome Stand:</label>
+      <input type="text" formControlName="nomeStand">
+      
+      <label>Posizione (es. Zona A):</label>
+      <input type="text" formControlName="posizione">
+    </div>
+
+    <hr>
+
+    <h3>Menu dello Stand</h3>
+    <div formArrayName="menu">
+      <div *ngFor="let piatto of menu.controls; let i = index" [formGroupName]="i" class="piatto-row">
+        <input type="text" formControlName="nomePiatto" placeholder="Nome Piatto">
+        <input type="number" formControlName="prezzo" placeholder="Prezzo">
+        <button type="button" (click)="removePiatto(i)" class="btn-remove">X</button>
+      </div>
+    </div>
+
+    <button type="button" (click)="addPiatto()" class="btn-add">+ Aggiungi Piatto</button>
+    
+    <hr>
+    
+    <button type="submit" [disabled]="standForm.invalid" class="btn-save">
+      Salva Stand su Microservizio Food
+    </button>
+  </form>
+</div>
