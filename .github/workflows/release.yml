@@ -1,0 +1,106 @@
+name: Release & Smart Versioning
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      manual_version:
+        description: 'Forza una versione specifica (es: 1.5.0)'
+        required: false
+        default: ''
+
+jobs:
+  release:
+    name: Create Release & Bump Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine Version
+        id: versioning
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          PR_NUMBER=$(echo "$COMMIT_MSG" | grep -oP 'Merge pull request #\K\d+' || true)
+
+          INC_TYPE="patch"
+          REQ_VERSION="${{ github.event.inputs.manual_version }}"
+          BRANCH_NAME=$(echo "$COMMIT_MSG" | grep -oP 'from \S+/\K\S+' || true)
+
+          if [ ! -z "$PR_NUMBER" ] && [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME=$(gh pr view "$PR_NUMBER" --json headRefName -q '.headRefName' || true)
+          fi
+
+          if [ ! -z "$BRANCH_NAME" ]; then
+            if [[ "$BRANCH_NAME" =~ ([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+              REQ_VERSION="${BASH_REMATCH[1]}"
+            fi
+
+            if [ ! -z "$PR_NUMBER" ]; then
+              LABELS=$(gh pr view "$PR_NUMBER" --json labels -q '.labels[].name' 2>/dev/null || true)
+              if echo "$LABELS" | grep -iq "major"; then
+                INC_TYPE="major"
+              elif echo "$LABELS" | grep -iq "minor"; then
+                INC_TYPE="minor"
+              fi
+            fi
+          fi
+
+          if [ ! -z "$REQ_VERSION" ]; then
+            RELEASE_VERSION="$REQ_VERSION"
+          else
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+            if [ "$INC_TYPE" == "major" ]; then
+              RELEASE_VERSION="$((MAJOR + 1)).0.0"
+            elif [ "$INC_TYPE" == "minor" ]; then
+              RELEASE_VERSION="$MAJOR.$((MINOR + 1)).0"
+            else
+              RELEASE_VERSION="$CURRENT_VERSION"
+            fi
+          fi
+
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
+          echo "release_version=$RELEASE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ env.RELEASE_VERSION }}" -m "Release v${{ env.RELEASE_VERSION }}"
+          git push origin "v${{ env.RELEASE_VERSION }}"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.RELEASE_VERSION }}
+          name: Release v${{ env.RELEASE_VERSION }}
+          generate_release_notes: true
+
+      - name: Bump Version on develop
+        run: |
+          git checkout develop
+          git pull origin develop
+
+          REL_VERSION=${{ env.RELEASE_VERSION }}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$REL_VERSION"
+          NEXT_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+
+          npm version "$NEXT_VERSION" --no-git-tag-version
+
+          git add package.json package-lock.json
+          git commit -m "chore(release): bump version to $NEXT_VERSION [skip ci]"
+          git push origin develop

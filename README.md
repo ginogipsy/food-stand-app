@@ -1,59 +1,23 @@
-# FoodStandApp
+# Food Stand App
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.3.
+Applicazione Web Angular per la gestione degli stand della festa "Le Cantine di San Martino".
 
-## Development server
+## 🚀 Sviluppo e Rilasci
 
-To start a local development server, run:
+Il progetto utilizza un workflow automatizzato basato su GitHub Actions e Git Flow.
 
-```bash
-ng serve
-```
+Per tutte le informazioni su come gestire le versioni, creare release e utilizzare il sistema di automazione, consulta la guida dedicata:
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+👉 **[Guida ai Rilasci e Versionamento](docs/RELEASE_GUIDE.md)**
 
-## Code scaffolding
+## 🛠️ Tech Stack
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+- **Framework**: Angular 21
+- **Language**: TypeScript
+- **CI/CD**: GitHub Actions (Build, Docker, Release Automation)
+- **Container**: Docker + Nginx
 
-```bash
-ng generate component component-name
-```
+## 📖 Documentazione Correlata
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- [Dettagli CI/CD](docs/ci-cd.md)
+- [Istruzioni per Agenti (CLAUDE.md)](docs/CLAUDE.md)

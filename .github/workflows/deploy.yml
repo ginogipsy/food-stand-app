@@ -1,0 +1,70 @@
+name: Deploy image
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      ref_name:
+        required: true
+        type: string
+      ref_type:
+        required: true
+        type: string
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  gate:
+    name: Approve deploy
+    if: github.event_name != 'workflow_dispatch' && github.ref_name != 'master' && github.ref_type != 'tag'
+    runs-on: ubuntu-latest
+    environment: ${{ (github.event_name != 'workflow_dispatch' && github.ref_name != 'master' && github.ref_type != 'tag') && 'san-martino-registry' || '' }}
+    steps:
+      - name: Approve
+        run: echo "Deploy approved"
+
+  push-image:
+    name: Push Docker Image
+    needs: gate
+    if: always() && (needs.gate.result == 'success' || needs.gate.result == 'skipped' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags
+        id: tags
+        run: |
+          REPOSITORY="ghcr.io/${{ github.repository_owner }}/food-stand-app"
+          REF_NAME="${{ inputs.ref_name || github.ref_name }}"
+          SLUG=$(echo "$REF_NAME" | tr '/' '-' | tr '[:upper:]' '[:lower:]')
+
+          if [ "${{ inputs.ref_type || github.ref_type }}" = "tag" ]; then
+            TAG="${REF_NAME#v}"
+          elif [ "$REF_NAME" = "master" ]; then
+            TAG="latest"
+          else
+            TAG="$SLUG"
+          fi
+
+          echo "repository=$REPOSITORY" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tags.outputs.repository }}:${{ steps.tags.outputs.tag }}
