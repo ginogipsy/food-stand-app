@@ -52,7 +52,7 @@ jobs:
     needs: build-test
     if: github.event_name == 'push'
     permissions:
-      contents: read
+      contents: write
       packages: write
       actions: read
     uses: ./.github/workflows/deploy.yml
@@ -60,14 +60,3 @@ jobs:
       version: ${{ needs.build-test.outputs.version }}
       ref_name: ${{ github.ref_name }}
       ref_type: ${{ github.ref_type }}
-
-  release:
-    name: Release
-    needs: [build-test, deploy]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    permissions:
-      contents: write
-      pull-requests: read
-    uses: ./.github/workflows/release.yml
-    with:
-      version: ${{ needs.build-test.outputs.version }}

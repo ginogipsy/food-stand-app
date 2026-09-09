@@ -1,54 +1,112 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, FormArray, Validators } from '@angular/forms';
-import { Food } from '../../services/food';
+import { Food, StandCreate, MenuItemCreate } from '../../services/food';
+import { Auth } from '../../services/auth';
 
 @Component({
   selector: 'app-admin-stand',
-  imports: [],
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './admin-stand.html',
   styleUrl: './admin-stand.css',
 })
-export class AdminStand {
+export class AdminStand implements OnInit {
   private fb = inject(FormBuilder);
   private foodService = inject(Food);
+  private authService = inject(Auth);
 
-  // Definiamo il Form: Stand + Array di piatti (Menu)
+  isStandOwner = false;
+  userStandId: string | null = null;
+
+  // Form allineato con lo schema OpenAPI di san-martino-services
   standForm = this.fb.group({
-    nome: ['', Validators.required],
-    posizione: ['', Validators.required],
-    menu: this.fb.array([]) // Array dinamico
+    standId: [''], // Per i gestori
+    number: [0, [Validators.required, Validators.min(1)]],
+    name: ['', Validators.required],
+    descriptionIt: ['', Validators.required],
+    descriptionEn: ['', Validators.required],
+    firstParticipationYear: [new Date().getFullYear(), Validators.required],
+    latitude: [41.590, Validators.required],
+    longitude: [13.570, Validators.required],
+    menu: this.fb.array([])
   });
 
-  // Getter per accedere facilmente all'array del menu nell'HTML
+  ngOnInit() {
+    const role = this.authService.getUserRole();
+    this.isStandOwner = role === 'ROLE_STAND_OWNER';
+    this.userStandId = this.authService.getStandId();
+
+    if (this.isStandOwner && this.userStandId) {
+      this.standForm.patchValue({ standId: this.userStandId });
+      // In un caso reale caricheremmo i dati dello stand esistente qui
+    }
+  }
+
   get menu() {
     return this.standForm.controls["menu"] as FormArray;
   }
 
-  // Metodo per aggiungere un nuovo piatto al menu
   addPiatto() {
     const piattoForm = this.fb.group({
       nomePiatto: ['', Validators.required],
-      prezzo: [0, [Validators.required, Validators.min(0.50)]]
+      descrizioneIt: ['', Validators.required],
+      descrizioneEn: ['', Validators.required],
+      prezzo: [0, [Validators.required, Validators.min(0.50)]],
+      disponibilita: [100, [Validators.required, Validators.min(0)]],
+      tipo: ['FOOD', Validators.required]
     });
     this.menu.push(piattoForm);
   }
 
-  // Metodo per rimuovere un piatto
   removePiatto(index: number) {
     this.menu.removeAt(index);
   }
 
   onSubmit() {
     if (this.standForm.valid) {
-      const standData = this.standForm.value as { nome: string; menu: any[] };
-      this.foodService.addStand(standData).subscribe({
-        next: (res) => {
-          alert('Stand e Menu salvati con successo sul microservizio Spring!');
-          this.standForm.reset();
+      const rawData = this.standForm.value;
+
+      // Mapping verso StandCreate (OpenAPI)
+      const standData: StandCreate = {
+        number: rawData.number!,
+        name: rawData.name!,
+        description: {
+          it: rawData.descriptionIt!,
+          en: rawData.descriptionEn!
         },
-        error: (err) => alert('Errore durante il salvataggio. Controlla i log.')
-      });
+        firstParticipationYear: rawData.firstParticipationYear!,
+        latitude: rawData.latitude!,
+        longitude: rawData.longitude!
+      };
+
+      // Mapping verso MenuItemCreate[]
+      const menuData: MenuItemCreate[] = (rawData.menu || []).map((m: any) => ({
+        name: m.nomePiatto,
+        description: {
+          it: m.descrizioneIt,
+          en: m.descrizioneEn
+        },
+        availablePlates: m.disponibilita,
+        kind: m.tipo as 'FOOD' | 'DRINK'
+      }));
+
+      if (this.isStandOwner && this.userStandId) {
+        // Se è già un gestore, aggiungiamo solo i nuovi piatti al suo stand
+        // In produzione useremmo un endpoint di update massivo o singoli add
+        alert('Gestione piatti per stand ' + this.userStandId);
+        // Esempio: loop su menuData chiamando updateStandMenu
+      } else {
+        // Se è Admin, crea tutto il pacchetto
+        this.foodService.addStandWithMenu(standData, menuData).subscribe({
+          next: (res) => {
+            alert('Stand e Menu creati con successo tramite Gateway!');
+            this.standForm.reset();
+            this.menu.clear();
+          },
+          error: (err) => alert('Errore durante il salvataggio. Controlla il Gateway.')
+        });
+      }
     }
   }
 }

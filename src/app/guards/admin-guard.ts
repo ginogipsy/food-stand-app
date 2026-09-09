@@ -5,12 +5,13 @@ import { Auth } from '../services/auth';
 export const adminGuard: CanActivateFn = (route, state) => {
   const authService = inject(Auth);
   const router = inject(Router);
+  const role = authService.getUserRole();
 
-  if (authService.isAdmin()) {
-    return true; // Accesso consentito
+  if (role === 'ROLE_ADMIN' || role === 'ROLE_STAND_OWNER') {
+    return true; // Accesso consentito per Admin e Gestori Stand
   } else {
-    alert('Accesso negato! Solo gli amministratori possono entrare qui.');
+    alert('Accesso negato! Non hai i permessi per accedere a questa sezione.');
     router.navigate(['/login']);
-    return false; // Blocca la navigazione
+    return false;
   }
 };

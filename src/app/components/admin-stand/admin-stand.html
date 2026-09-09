@@ -1,32 +1,67 @@
 <div class="admin-container">
-  <h2>Configurazione Nuovo Stand</h2>
+  <h2>Configurazione Stand (OpenAPI Mapped)</h2>
 
   <form [formGroup]="standForm" (ngSubmit)="onSubmit()">
     <div class="section">
-      <label>Nome Stand:</label>
-      <input type="text" formControlName="nomeStand">
-      
-      <label>Posizione (es. Zona A):</label>
-      <input type="text" formControlName="posizione">
+      @if (!isStandOwner) {
+        <label for="number">Numero Stand:</label>
+        <input id="number" type="number" formControlName="number">
+
+        <label for="name">Nome Stand:</label>
+        <input id="name" type="text" formControlName="name">
+
+        <div class="desc-row">
+          <div>
+            <label>Descrizione (IT):</label>
+            <textarea formControlName="descriptionIt"></textarea>
+          </div>
+          <div>
+            <label>Descrizione (EN):</label>
+            <textarea formControlName="descriptionEn"></textarea>
+          </div>
+        </div>
+
+        <label>Anno Inizio:</label>
+        <input type="number" formControlName="firstParticipationYear">
+      } @else {
+        <h3>Gestione Menu per lo Stand: {{ userStandId }}</h3>
+      }
     </div>
 
     <hr>
 
-    <h3>Menu dello Stand</h3>
+    <h3>Piatti e Bevande</h3>
     <div formArrayName="menu">
-      <div *ngFor="let piatto of menu.controls; let i = index" [formGroupName]="i" class="piatto-row">
-        <input type="text" formControlName="nomePiatto" placeholder="Nome Piatto">
-        <input type="number" formControlName="prezzo" placeholder="Prezzo">
-        <button type="button" (click)="removePiatto(i)" class="btn-remove">X</button>
-      </div>
+      @for (piatto of menu.controls; track $index; let i = $index) {
+        <div [formGroupName]="i" class="piatto-card">
+          <div class="piatto-header">
+            <strong>Piatto #{{ i + 1 }}</strong>
+            <button type="button" (click)="removePiatto(i)" class="btn-remove">Elimina</button>
+          </div>
+
+          <input type="text" formControlName="nomePiatto" placeholder="Nome Piatto">
+          <div class="desc-row">
+            <input type="text" formControlName="descrizioneIt" placeholder="Desc. Italiana">
+            <input type="text" formControlName="descrizioneEn" placeholder="Desc. Inglese">
+          </div>
+          <div class="desc-row">
+            <input type="number" formControlName="prezzo" placeholder="Prezzo (€)">
+            <input type="number" formControlName="disponibilita" placeholder="Disponibilità">
+            <select formControlName="tipo">
+              <option value="FOOD">Cibo</option>
+              <option value="DRINK">Bevanda</option>
+            </select>
+          </div>
+        </div>
+      }
     </div>
 
     <button type="button" (click)="addPiatto()" class="btn-add">+ Aggiungi Piatto</button>
-    
+
     <hr>
-    
+
     <button type="submit" [disabled]="standForm.invalid" class="btn-save">
-      Salva Stand su Microservizio Food
+      {{ isStandOwner ? 'Aggiorna Menu' : 'Crea Stand e Menu' }}
     </button>
   </form>
 </div>

@@ -1,9 +1,13 @@
 # Guida ai Rilasci e Versionamento (Angular App)
 
 > [!IMPORTANT]
-> **Pulsante "Approve" (Terzo Pallino)**
-> Se sui branch di sviluppo la pipeline si ferma senza mostrare il tasto "Review deployments", significa che l'ambiente non è configurato.
-> **Assicurati di aver creato l'environment `san-martino-registry`** in *Settings -> Environments* con la regola *Required reviewers* attiva (aggiungendo il tuo nome utente). Senza questo passaggio, il deploy manuale non può funzionare.
+> **Configurazione Obbligatoria per il Deploy Manuale**
+> Per abilitare il pulsante di approvazione (il "terzo pallino") sui branch feature, devi configurare l'ambiente su GitHub:
+> 1. Vai in **Settings** -> **Environments**.
+> 2. Clicca su **New environment** e chiamalo esattamente **`san-martino-registry`**.
+> 3. Sotto **Deployment protection rules**, attiva **Required reviewers**.
+> 4. Aggiungi il tuo account GitHub come revisore.
+> 5. Clicca su **Save protection rules**.
 
 Questa guida spiega come gestire il ciclo di vita dell'applicazione web, i rilasci su GitHub e il sistema di versionamento automatico.
 
@@ -45,23 +49,28 @@ Il processo segue il modello **Git Flow**. Hai quattro modi per decidere la vers
 
 ## 📦 Rilascio dell'Immagine Docker
 
-La pubblicazione delle immagini Docker sul registry (GHCR) segue una logica ibrida.
+La pubblicazione delle immagini Docker sul registry (GHCR) segue una logica differenziata per garantire velocità in produzione e controllo nello sviluppo.
 
 ### 🚀 Pubblicazione Automatica (Continuous Deployment)
 L'immagine viene creata e pushata **automaticamente** in due casi:
 - **Merge su `master`**: L'immagine viene taggata come `latest`.
-- **Creazione di un Tag Git (`v*`)**: L'immagine viene taggata con la versione corrispondente.
+- **Creazione di un Tag Git (`v*`)**: L'immagine viene taggata con la versione corrispondente (es. `1.2.0`).
 
 ### ✋ Pubblicazione Manuale (Il "Terzo Pallino")
-Sui branch di sviluppo (**`develop`**, **`feature/*`**), la pipeline si ferma dopo i test:
-1. Vai nella tab **Actions** su GitHub e clicca sulla run corrente.
-2. Vedrai un pulsante **"Review deployments"**.
-3. Clicca su **Approve** (per l'environment `san-martino-registry`).
-4. **Risultato**: L'immagine verrà pubblicata con il **nome del branch**, pronta per essere testata.
+Sui branch di sviluppo (**`develop`**, **`feature/*`**, **`release/*`**), la pipeline si ferma dopo i test:
+1. Vai nella tab **Actions** su GitHub.
+2. Clicca sulla run corrente della pipeline.
+3. Vedrai un pulsante **"Review deployments"**.
+4. Clicca su **Approve** (per l'environment `san-martino-registry`).
+5. **Risultato**: L'immagine verrà pubblicata con il **nome del branch** (es. `feature-008-permessi`), pronta per essere testata.
 
 ---
 
-## 🤖 Cosa succede dietro le quinte?
+## 🧪 Qualità del Codice (Qodana)
+
+Ogni commit ed ogni Pull Request viene analizzata automaticamente da **JetBrains Qodana**.
+- Il report è consultabile nella tab **Checks** della Pull Request.
+- Assicuratevi che non vengano introdotti nuovi "Critical" o "High" issues prima del merge.
 
 Ad ogni merge su `master`, il workflow di GitHub:
 1. Determina la versione corretta tramite **Smart Versioning**.
